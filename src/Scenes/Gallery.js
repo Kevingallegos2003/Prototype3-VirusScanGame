@@ -14,13 +14,16 @@ class Gallery extends Phaser.Scene {
         this.maxBullets = 10;
         this.maxDucks = 10;
         this.dhit = [];
+        this.scanChargeTimer = 0;
+        this.scanTimer = 0;
         //this.num = 0;
     }
     preload(){
         this.load.setPath("./assets/");
 
         this.load.image("bar", "BAR.png");
-        this.load.image("bg", "WALL.png");
+        this.load.image("bg", "Bliss.webp");
+        // this.load.image("bg", "WALL.png"); // Old Background
         this.load.image("duck_yellow", "duck1.png");
         this.load.image("duck_brown", "duck2.png");
         this.load.image("duck_brownV", "duck2V.png");
@@ -31,11 +34,12 @@ class Gallery extends Phaser.Scene {
 
     }
     create(){
-        document.getElementById('description').innerHTML = "Click files you think are safe and use SPACE to scan them!"
+        document.getElementById('description').innerHTML = "Use SPACE to scan the files<br>CLICK on files that are safe!<br>Press ENTER to play again"
         let my = this.my;
         this.mode = 900;
         this.scan = false;
         my.sprite.bg = (this.add.sprite(400, 300, "bg"));
+        my.sprite.bg.setScale(.6);
         my.sprite.Bar = (this.add.sprite(400, 300, "bar"));
         my.sprite.Bar.setScale(1);
         this.dhit.push('quack1');this.dhit.push('quack2');this.dhit.push('quack3');
@@ -43,8 +47,10 @@ class Gallery extends Phaser.Scene {
         this.tick = 0;
         my.sprite.score = this.add.bitmapText(10, 30, 'cfont', "Pc Integrity",40);
         my.sprite.highscore = this.add.bitmapText(250,20, 'cfont', this.points);    
-        my.sprite.highscore.setScale(.8);
         my.sprite.score.setScale(.8);
+        my.sprite.highscore.setScale(.8);
+        my.sprite.charge = this.add.bitmapText(625, 500, 'cfont', "Scanner:\n"+this.timer+"%" ,40);
+        my.sprite.scanIndicator = this.add.bitmapText(20, 525, 'cfont', "" ,40);
         this.bulletSpeed = 8;
         this.duckbulletspeed = 10;
         this.duckSpeed = 5;
@@ -55,10 +61,25 @@ class Gallery extends Phaser.Scene {
     }
     update(){
         let my = this.my;
+        if (this.scanChargeTimer < 100){
+            this.scanChargeTimer += 2; // Change the increase speed to tweak game feel (how long player waits to scan again)
+            my.sprite.charge.setText("Scanner:\n"+this.scanChargeTimer+"%");
+        }
+        if (this.scanTimer >= 75) { // Change the max value to tweak game feel (how long the scanner stays on for)
+            this.scan = false;
+            this.scanTimer = 0;
+        }
+        if (this.scan == true){
+            this.scanTimer++;
+            my.sprite.scanIndicator.setText("Scanning...");
+            // my.sprite.scanIndicator.setText("Scanning... debug:"+this.scanTimer);
+        } else {
+            my.sprite.scanIndicator.setText("");
+        }
         this.num = Math.floor(Math.random() * this.randomz) + 1;
         this.rndx = Math.floor(Math.random() * 700) + 1;
         this.rndy = Math.floor(Math.random() * 500) + 1;
-        if(this.points<0){this.scene.start("GameoverScene");}
+        if(this.points<0){this.scene.start('GameoverScene');}
         for (let duck of my.sprite.duck) {
             duck.on('pointerdown', () => {
                 console.log("clicked duck, virus? -> ", duck.virus);
@@ -130,8 +151,12 @@ class Gallery extends Phaser.Scene {
             });
         }
         if (Phaser.Input.Keyboard.JustDown(this.space)) {
-            console.log("scan!");
-            this.scan = true;
+            if (this.scanChargeTimer >= 100){
+                console.log("scan!");
+                this.scan = true;
+                this.scanChargeTimer = 0;
+                this.scanTimer = 0;
+        }
         }
         my.sprite.duck = my.sprite.duck.filter((duck) => duck.x < game.config.width+60);
         my.sprite.educk = my.sprite.educk.filter((duck) => duck.x > -50);
